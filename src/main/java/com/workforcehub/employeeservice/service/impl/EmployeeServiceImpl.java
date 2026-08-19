@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
-    private final RestClient employeeRestClient;
+    private final RestClient.Builder restClientBuilder;
 
     @Override
     public EmployeeDTO saveEmployee(EmployeeDTO employeeDTO) {
@@ -76,7 +76,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     private void validateDepartment(Long departmentId) {
-        employeeRestClient.get()
+        RestClient restClient = restClientBuilder.build();
+        restClient.get()
                 .uri("http://department-service/api/v1/departments/{id}", departmentId)
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
