@@ -3,6 +3,7 @@ package com.workforcehub.employeeservice.service.impl;
 import com.workforcehub.employeeservice.dto.EmployeeDTO;
 import com.workforcehub.employeeservice.entity.Employee;
 import com.workforcehub.employeeservice.exception.ResourceNotFoundException;
+import com.workforcehub.employeeservice.exception.EmailAlreadyExistsException;
 import com.workforcehub.employeeservice.repository.EmployeeRepository;
 import com.workforcehub.employeeservice.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,6 +24,10 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public EmployeeDTO saveEmployee(EmployeeDTO employeeDTO) {
+        if (employeeRepository.existsByEmail(employeeDTO.getEmail())) {
+            throw new EmailAlreadyExistsException("Email already exists: " + employeeDTO.getEmail());
+        }
+        
         validateDepartment(employeeDTO.getDepartmentId());
         Employee employee = mapToEntity(employeeDTO);
         Employee savedEmployee = employeeRepository.save(employee);
@@ -53,6 +59,11 @@ public class EmployeeServiceImpl implements EmployeeService {
     public EmployeeDTO updateEmployee(Long id, EmployeeDTO employeeDTO) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + id));
+
+        Optional<Employee> existingEmployee = employeeRepository.findByEmail(employeeDTO.getEmail());
+        if (existingEmployee.isPresent() && !existingEmployee.get().getId().equals(id)) {
+            throw new EmailAlreadyExistsException("Email already exists: " + employeeDTO.getEmail());
+        }
 
         if (!employee.getDepartmentId().equals(employeeDTO.getDepartmentId())) {
             validateDepartment(employeeDTO.getDepartmentId());
