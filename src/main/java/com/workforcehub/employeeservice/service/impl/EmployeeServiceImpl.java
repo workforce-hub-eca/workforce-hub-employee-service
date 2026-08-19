@@ -6,10 +6,9 @@ import com.workforcehub.employeeservice.exception.ResourceNotFoundException;
 import com.workforcehub.employeeservice.repository.EmployeeRepository;
 import com.workforcehub.employeeservice.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,7 +18,7 @@ import java.util.stream.Collectors;
 public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
-    private final RestClient.Builder restClientBuilder;
+    private final RestTemplate restTemplate;
 
     @Override
     public EmployeeDTO saveEmployee(EmployeeDTO employeeDTO) {
@@ -76,14 +75,13 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     private void validateDepartment(Long departmentId) {
-        RestClient restClient = restClientBuilder.build();
-        restClient.get()
-                .uri("http://department-service/api/v1/departments/{id}", departmentId)
-                .retrieve()
-                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
-                    throw new ResourceNotFoundException("Department not found with id: " + departmentId);
-                })
-                .toBodilessEntity();
+        try {
+            restTemplate.getForObject("http://department-service/api/v1/departments/" + departmentId, Object.class);
+        } catch (HttpClientErrorException.NotFound ex) {
+            throw new ResourceNotFoundException("Department not found with id: " + departmentId);
+        } catch (HttpClientErrorException ex) {
+            throw new RuntimeException("Error communicating with department-service: " + ex.getMessage());
+        }
     }
 
     private EmployeeDTO mapToDTO(Employee employee) {
