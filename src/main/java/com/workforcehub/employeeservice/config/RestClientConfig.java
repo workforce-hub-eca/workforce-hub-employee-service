@@ -10,7 +10,12 @@ public class RestClientConfig {
 
     @Bean
     @LoadBalanced
-    public RestClient.Builder restClientBuilder() {
+    public RestClient.Builder loadBalancedRestClientBuilder() {
         return RestClient.builder();
+    }
+
+    @Bean
+    public RestClient employeeRestClient(RestClient.Builder loadBalancedRestClientBuilder) {
+        return loadBalancedRestClientBuilder.build();
     }
 }
